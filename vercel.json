@@ -1,0 +1,16 @@
+{
+  "builds": [
+    {
+      "src": "*.php",
+      "use": "vercel-php@0.7.4",
+      "config": { "includeFiles": "includes/**" }
+    },
+    {
+      "src": "assets/**",
+      "use": "@vercel/static"
+    }
+  ],
+  "rewrites": [
+    { "source": "/", "destination": "/index.php" }
+  ]
+}
