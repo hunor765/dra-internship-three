@@ -165,6 +165,7 @@ class CookieBannerAccordion {
 
   saveAndClose() {
     this.setServerCookies();
+    this.pushConsentEvent();
     const banner = document.getElementById('cookie-accordion-banner');
     banner.classList.add('banner-closing');
     setTimeout(() => {
@@ -172,6 +173,21 @@ class CookieBannerAccordion {
         banner.remove();
       }
     }, 300);
+  }
+
+  pushConsentEvent() {
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({
+      event: 'cookie_consent_update',
+      cookie_consent: {
+        essential: this.cookies.essential,
+        personalization: this.cookies.personalization,
+        targeting: this.cookies.targeting,
+        measurement: this.cookies.measurement
+      },
+      consent_timestamp: new Date().toISOString(),
+      consent_method: 'accordion_banner'
+    });
   }
 
   setServerCookies() {
