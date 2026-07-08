@@ -52,10 +52,12 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="/assets/css/style.css">
+<link rel="stylesheet" href="/assets/css/cookie-banner-accordion.css">
 <script>
   // Expose the store currency to the client-side cart logic.
   window.STORE_CURRENCY = <?= json_encode($STORE['currency']) ?>;
 </script>
+<script src="/assets/js/cookie-banner-accordion.js"></script>
 </head>
 <body>
 <!-- Google Tag Manager (noscript) -->
