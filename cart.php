@@ -109,7 +109,7 @@ require __DIR__ . '/includes/header.php';
     }
   };
 
-  document.addEventListener('DOMContentLoaded', function () {
+  SNS_READY(function () {
     renderCart();
 
     // Fire view_cart once on load (only if there is something to view).

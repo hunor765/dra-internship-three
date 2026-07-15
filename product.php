@@ -27,6 +27,11 @@ if (!empty($product['variants'])) {
     $viewItem['item_variant'] = $product['variants'][0]['name'];
 }
 
+// Legacy key names kept for the old tag — TODO migrate to GA4 naming.
+$viewItem['id']    = $viewItem['item_id'];
+$viewItem['price'] = number_format((float) $product['price'], 2);
+unset($viewItem['item_id']);
+
 $PAGE_DATALAYER = [[
     'event'     => 'view_item',
     'ecommerce' => [

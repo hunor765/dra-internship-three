@@ -95,6 +95,42 @@ function attr_json(array $data): string
 }
 
 /**
+ * Render a newsletter signup block.
+ *
+ * $placement identifies WHERE the form is (footer / blog_index /
+ * article_footer). It rides along on the newsletter_signup event so the
+ * same event can be segmented by position in GA4.
+ */
+function render_newsletter(string $placement = 'footer'): void
+{
+    global $NEWSLETTER;
+    $id = 'news-' . preg_replace('/[^a-z0-9]+/i', '-', $placement);
+    ?>
+    <section class="newsletter newsletter--<?= htmlspecialchars($placement) ?>">
+      <div class="newsletter__copy">
+        <h3><?= htmlspecialchars($NEWSLETTER['heading']) ?></h3>
+        <p class="muted"><?= htmlspecialchars($NEWSLETTER['blurb']) ?></p>
+      </div>
+
+      <form class="newsletter__form"
+            data-newsletter-form
+            data-placement="<?= htmlspecialchars($placement) ?>"
+            novalidate>
+        <div class="field">
+          <label class="sr-only" for="<?= $id ?>">Email address</label>
+          <input id="<?= $id ?>" name="email" type="email" placeholder="you@example.com">
+        </div>
+        <button type="submit" class="btn">Subscribe</button>
+      </form>
+
+      <div class="newsletter__done" data-newsletter-success style="display:none;">
+        ✅ You're on the list — a <code>newsletter_signup</code> event just hit the dataLayer.
+      </div>
+    </section>
+    <?php
+}
+
+/**
  * Render a product card for use inside a list/grid.
  *
  * The card carries the GA4 item payload in data attributes so the JS layer

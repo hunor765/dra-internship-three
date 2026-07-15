@@ -91,7 +91,7 @@ require __DIR__ . '/includes/header.php';
     form.querySelector('[data-total]').textContent = money(subtotal + ship);
   }
 
-  document.addEventListener('DOMContentLoaded', function () {
+  SNS_READY(function () {
     var cart = SNS.getCart();
     if (!cart.length) { empty.style.display = 'block'; return; }
     form.style.display = 'grid';

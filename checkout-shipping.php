@@ -93,7 +93,7 @@ require __DIR__ . '/includes/header.php';
     form.querySelector('[data-total]').textContent = money(subtotal + ship);
   }
 
-  document.addEventListener('DOMContentLoaded', function () {
+  SNS_READY(function () {
     var cart = SNS.getCart();
     if (!cart.length) { empty.style.display = 'block'; return; }
     form.style.display = 'grid';
@@ -115,14 +115,14 @@ require __DIR__ . '/includes/header.php';
       // Persist chosen tier so the payment + purchase steps can reuse it.
       localStorage.setItem('sns_shipping_tier', tier);
 
+      window.location.href = '/checkout-payment.php';
+
       SNS.pushEcommerce('add_shipping_info', {
         currency: SNS.currency,
         value: SNS.cartValue(SNS.getCart()),
         shipping_tier: tier,
         items: SNS.getCart()
       });
-
-      window.location.href = '/checkout-payment.php';
     });
   });
 })();

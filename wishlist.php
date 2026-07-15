@@ -86,7 +86,7 @@ require __DIR__ . '/includes/header.php';
     });
   }
 
-  document.addEventListener('DOMContentLoaded', function () {
+  SNS_READY(function () {
     render();
     var wl = SNS.getWishlist();
     if (wl.length) {

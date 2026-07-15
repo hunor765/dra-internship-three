@@ -40,7 +40,7 @@ require __DIR__ . '/includes/header.php';
 (function () {
   function money(n) { return '$' + (Math.round(n * 100) / 100).toFixed(2); }
 
-  document.addEventListener('DOMContentLoaded', function () {
+  SNS_READY(function () {
     var raw = localStorage.getItem('sns_last_order');
     var none = document.getElementById('ty-none');
     var content = document.getElementById('ty-content');

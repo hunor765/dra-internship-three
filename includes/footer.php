@@ -1,5 +1,9 @@
 </main>
 
+<div class="wrap">
+  <?php render_newsletter('footer'); ?>
+</div>
+
 <footer class="site-footer">
   <div class="wrap site-footer__inner">
     <div>
@@ -19,6 +23,12 @@
         <a href="/cart.php">Cart</a>
       </div>
       <div>
+        <h4>Company</h4>
+        <a href="/blog.php">Blog</a>
+        <a href="/locations.php">Store locations</a>
+        <a href="/contact.php">Contact us</a>
+      </div>
+      <div>
         <h4>Learning</h4>
         <a href="/index.php">All GA4 events</a>
         <span class="muted">Open the console &amp; watch <code>dataLayer</code>.</span>
@@ -28,5 +38,7 @@
 </footer>
 
 <script src="/assets/js/main.js"></script>
+<script src="/assets/js/content.js"></script>
+<script src="/assets/js/router.js"></script>
 </body>
 </html>

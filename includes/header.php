@@ -13,7 +13,7 @@ $PAGE_TITLE      = $PAGE_TITLE      ?? 'Thread & Stitch';
 $PAGE_DATALAYER  = $PAGE_DATALAYER  ?? [];
 
 // GTM container for the Thread & Stitch training store.
-$GTM_ID = 'GTM-PQ8X4LR';
+$GTM_ID = 'GTM-KQNM4DRL';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -33,6 +33,23 @@ $GTM_ID = 'GTM-PQ8X4LR';
   window.dataLayer = window.dataLayer || [];
   window.GTM_CONTAINER_ID = '<?= $GTM_ID ?>';
   window.SNS_PENDING_EVENTS = window.SNS_PENDING_EVENTS || [];
+
+  /* ------------------------------------------------------------------
+     SPA page-ready hook.
+
+     The site is now a single-page app: after the first load, navigation
+     is handled by router.js, which swaps <main> and re-executes the
+     scripts inside it. DOMContentLoaded only ever fires ONCE, so page
+     scripts register through SNS_READY instead — it defers on the first
+     load and runs immediately on every client-side route change.
+     ------------------------------------------------------------------ */
+  window.SNS_READY = function (fn) {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', fn);
+    } else {
+      fn();
+    }
+  };
 </script>
 <?php if (!empty($PAGE_DATALAYER)): ?>
 <script>
@@ -76,6 +93,9 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <?php global $CATEGORIES; foreach ($CATEGORIES as $cat): ?>
         <a href="/category.php?id=<?= urlencode($cat['id']) ?>"><?= htmlspecialchars($cat['name']) ?></a>
       <?php endforeach; ?>
+      <a href="/blog.php">Blog</a>
+      <a href="/locations.php">Stores</a>
+      <a href="/contact.php">Contact</a>
     </nav>
 
     <div class="header-actions">

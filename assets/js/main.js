@@ -87,6 +87,20 @@
     });
   }
 
+  /* ----------------------------------------------------------------------
+   * Generic (non-ecommerce) event helper.
+   *
+   * Content events — contact form, newsletter, blog, locations — are flat
+   * events with no `ecommerce` object, so they must NOT go through
+   * pushEcommerce (which would nest them and null the ecommerce key).
+   * They still wait for the GTM readiness gate like everything else.
+   * -------------------------------------------------------------------- */
+  function pushEvent(eventName, params) {
+    runWhenGtmReady(function () {
+      window.dataLayer.push(Object.assign({ event: eventName }, params || {}));
+    });
+  }
+
   function cartValue(cart) {
     return round2(cart.reduce(function (sum, i) {
       return sum + (i.price * i.quantity);
@@ -152,7 +166,7 @@
     pushEcommerce('remove_from_cart', {
       currency: CURRENCY,
       value: round2(item.price * item.quantity),
-      items: [item]
+      items: getCart()
     });
     // Re-render the cart page if we're on it.
     if (typeof window.renderCart === 'function') window.renderCart();
@@ -245,7 +259,24 @@
   /* ======================================================================
    * Wire up the DOM once loaded
    * ==================================================================== */
-  document.addEventListener('DOMContentLoaded', function () {
+  /* ----------------------------------------------------------------------
+   * Bind-once guard.
+   *
+   * initPage() now runs on EVERY client-side route change, not just once.
+   * Elements inside <main> are rebuilt on each navigation so they are always
+   * fresh, but persistent chrome (the footer newsletter form) would collect a
+   * new listener every time without this.
+   * -------------------------------------------------------------------- */
+  function bindOnce(el) {
+    if (el.__snsBound) return false;
+    el.__snsBound = true;
+    return true;
+  }
+
+  /* ======================================================================
+   * PAGE INIT — runs on first load and again after every SPA navigation.
+   * ==================================================================== */
+  function initPage() {
     refreshBadges();
 
     /* --- Flush page-load view_* events queued in the <head> --------- */
@@ -261,6 +292,7 @@
 
     /* --- Add to cart buttons ---------------------------------------- */
     document.querySelectorAll('[data-add-to-cart]').forEach(function (btn) {
+      if (!bindOnce(btn)) return;
       btn.addEventListener('click', function () {
         var item = itemFromEl(btn);
         if (!item) return;
@@ -277,7 +309,7 @@
           item.quantity = Math.max(1, parseInt(qtyInput.value, 10) || 1);
         }
         addToCart(item);
-        flash(btn, 'Added ✓');
+        flash(btn, 'Added \u2713');
       });
     });
 
@@ -302,6 +334,7 @@
       }
 
       reflect();
+      if (!bindOnce(btn)) return;
       if (variantSel) variantSel.addEventListener('change', reflect);
 
       btn.addEventListener('click', function () {
@@ -309,12 +342,13 @@
         if (!it) return;
         var added = toggleWishlist(it);
         btn.classList.toggle('is-active', added);
-        flash(btn, added ? 'Saved ♥' : 'Removed');
+        flash(btn, added ? 'Saved \u2665' : 'Removed');
       });
     });
 
     /* --- Product card clicks (select_item) -------------------------- */
     document.querySelectorAll('[data-select-item]').forEach(function (link) {
+      if (!bindOnce(link)) return;
       link.addEventListener('click', function () {
         var item = itemFromEl(link);
         if (!item) return;
@@ -324,6 +358,7 @@
 
     /* --- Promotion clicks (select_promotion) ------------------------ */
     document.querySelectorAll('[data-select-promotion]').forEach(function (link) {
+      if (!bindOnce(link)) return;
       link.addEventListener('click', function () {
         var promo;
         try { promo = JSON.parse(link.getAttribute('data-promotion')); }
@@ -334,6 +369,7 @@
 
     /* --- Begin checkout button -------------------------------------- */
     document.querySelectorAll('[data-begin-checkout]').forEach(function (btn) {
+      if (!bindOnce(btn)) return;
       btn.addEventListener('click', function (e) {
         var cart = getCart();
         if (!cart.length) return;
@@ -344,7 +380,9 @@
         });
       });
     });
-  });
+  }
+
+  SNS_READY(initPage);
 
   /* Small visual confirmation on a button press. */
   function flash(btn, text) {
@@ -371,6 +409,8 @@
     cartValue: cartValue,
     round2: round2,
     pushEcommerce: pushEcommerce,
+    pushEvent: pushEvent,
+    initPage: initPage,
     currency: CURRENCY,
     refreshBadges: refreshBadges
   };
