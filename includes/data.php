@@ -542,3 +542,164 @@ $LOCATIONS = [
         ],
     ],
 ];
+
+/* ---------------------------------------------------------------------------
+ * DOWNLOADABLE DOCUMENTS
+ *
+ * Each entry is rendered to a real PDF on demand by download.php (see
+ * includes/pdf.php) — nothing binary is committed. A document either belongs
+ * to a product ('product' => SKU) and shows on that product page, or is
+ * site-wide ('product' => null) and shows only in the resource centre.
+ *
+ * 'type' and 'label' ride along on the file_download event so downloads can be
+ * segmented in GA4 by what kind of document was taken.
+ * ------------------------------------------------------------------------- */
+$DOCUMENTS = [
+    'fabric-care-linen-dress' => [
+        'id'      => 'fabric-care-linen-dress',
+        'title'   => 'Linen Wrap Dress — Fabric & Care Guide',
+        'label'   => 'Fabric & care guide',
+        'type'    => 'care_guide',
+        'product' => 'SKU-DRS-001',
+        'file'    => 'linen-wrap-dress-care.pdf',
+        'summary' => 'Fibre composition, washing temperatures, drying, pressing and how linen is meant to age.',
+        'sections' => [
+            ['heading' => 'Composition', 'body' => [
+                '- Shell: 100% European flax linen, 185gsm, garment-washed.',
+                '- Thread: cotton-wrapped polyester for seam strength.',
+                'The fabric is washed before making up, so the finished garment has already taken most of its shrinkage. Expect no more than 1% further movement in the first wash.',
+            ]],
+            ['heading' => 'Washing', 'body' => [
+                'Machine wash at 30C on a gentle cycle, inside out, with similar colours. Use a mild detergent without optical brighteners; brighteners flatten the natural slub that gives linen its surface.',
+                '- Do not use fabric softener. It coats the fibre and stops linen softening naturally.',
+                '- Do not bleach, including oxygen bleach on the dyed colourways.',
+                '- Wash separately for the first two washes. Garment-dyed linen releases a little colour early on.',
+            ]],
+            ['heading' => 'Drying and pressing', 'body' => [
+                'Line dry in shade. Direct sun will fade the dye unevenly along the fold lines. Tumble drying on low is possible but will shorten the life of the fibre noticeably over a season.',
+                'Press while slightly damp on a medium-hot iron, or hang in a steamy bathroom and let the creases drop. Linen is not supposed to look pressed flat; a soft crease is the intended finish.',
+            ]],
+            ['heading' => 'How it should age', 'body' => [
+                'Linen softens and lightens with every wash for roughly the first twenty, then stabilises. Slubs and small irregularities in the weave are characteristic of flax and are not faults.',
+                'Wear will show first at the wrap tie and the underarm seam. Both are reinforced, and both can be repaired by any tailor without disturbing the drape.',
+            ]],
+        ],
+    ],
+
+    'size-guide-oxford-shirt' => [
+        'id'      => 'size-guide-oxford-shirt',
+        'title'   => 'Oxford Cotton Shirt — Size & Fit Guide',
+        'label'   => 'Size & fit guide',
+        'type'    => 'size_guide',
+        'product' => 'SKU-OXF-004',
+        'file'    => 'oxford-cotton-shirt-size-guide.pdf',
+        'summary' => 'Body measurements, garment measurements, how the fit runs and what changes after washing.',
+        'sections' => [
+            ['heading' => 'How to measure yourself', 'body' => [
+                'Measure over a thin layer, not bare skin, and keep the tape level.',
+                '- Chest: around the fullest part, under the arms, arms down.',
+                '- Neck: around the base of the neck, one finger under the tape.',
+                '- Sleeve: from the centre back of the neck, over the shoulder, to the wrist bone.',
+            ]],
+            ['heading' => 'Body measurements by size (cm)', 'body' => [
+                '- S: chest 92-97, neck 38, sleeve 84',
+                '- M: chest 98-103, neck 40, sleeve 86',
+                '- L: chest 104-110, neck 42, sleeve 88',
+                '- XL: chest 111-117, neck 44, sleeve 90',
+                '- XXL: chest 118-124, neck 46, sleeve 92',
+            ]],
+            ['heading' => 'Garment measurements, laid flat (cm)', 'body' => [
+                'These are the shirt itself, not the body it fits. Chest is measured across, one inch below the armhole, and doubles to give the full circumference.',
+                '- S: chest 55, length 74, shoulder 44',
+                '- M: chest 58, length 76, shoulder 46',
+                '- L: chest 61, length 78, shoulder 48',
+                '- XL: chest 64, length 80, shoulder 50',
+                '- XXL: chest 67, length 82, shoulder 52',
+            ]],
+            ['heading' => 'Fit notes', 'body' => [
+                'The cut is a classic fit — room through the chest and a straight body, meant to be worn tucked or loose. If you prefer a close fit, size down; the shoulder is the seam that will tell you whether you have gone too far.',
+                'Oxford cotton shrinks about 2% in length on the first hot wash and effectively nothing thereafter. Sleeve and body length are cut with that allowance already included, so wash at 30C and the sizing above holds.',
+            ]],
+        ],
+    ],
+
+    'materials-chelsea-boots' => [
+        'id'      => 'materials-chelsea-boots',
+        'title'   => 'Leather Chelsea Boots — Materials & Construction',
+        'label'   => 'Materials & construction',
+        'type'    => 'technical_spec',
+        'product' => 'SKU-BOO-008',
+        'file'    => 'leather-chelsea-boots-construction.pdf',
+        'summary' => 'Leather grade, sole construction, resoling, break-in and long-term care.',
+        'sections' => [
+            ['heading' => 'Materials', 'body' => [
+                '- Upper: full-grain calf leather, 1.4-1.6mm, vegetable tanned.',
+                '- Lining: unlined vamp, calf leather quarter lining.',
+                '- Elastic: twin-gore natural rubber and polyester panel.',
+                '- Sole: leather midsole with a 6mm rubber outsole.',
+                'Full-grain means the outermost layer of the hide is intact rather than sanded and re-embossed. It marks more easily at first and wears far better over years.',
+            ]],
+            ['heading' => 'Construction', 'body' => [
+                'Goodyear welted. The upper, welt and midsole are stitched together, and the outsole is stitched to the welt — so the outsole can be removed and replaced without disturbing the upper.',
+                'A welted boot can be resoled many times. Take them to a cobbler when the rubber has worn to within 2mm of the stitching; leaving it later risks damage to the welt itself, which is a much bigger repair.',
+            ]],
+            ['heading' => 'Break-in', 'body' => [
+                'Expect 2 to 3 weeks of regular wear. The unlined vamp will mould to the top of your foot and the heel will soften and stop slipping. A small amount of heel lift when new is normal and correct.',
+                'Do not try to speed this up with heat or water. Both will dry the leather and set it in a shape that has nothing to do with your foot.',
+            ]],
+            ['heading' => 'Care', 'body' => [
+                'Brush after wearing. Condition every 20 to 30 wears with a neutral cream, more often in winter if you walk in salt.',
+                'Use cedar trees between wears. They hold the shape and pull moisture out of the lining, which is the single thing that most extends the life of a leather boot.',
+                'Dry wet boots at room temperature, away from radiators, with the trees in.',
+            ]],
+        ],
+    ],
+
+    'size-chart-full' => [
+        'id'      => 'size-chart-full',
+        'title'   => 'Full Size Chart — All Categories',
+        'label'   => 'Full size chart',
+        'type'    => 'size_guide',
+        'product' => null,
+        'file'    => 'thread-and-stitch-size-chart.pdf',
+        'summary' => 'Every size across dresses, tops, knitwear, trousers and footwear, with international conversions.',
+        'sections' => [
+            ['heading' => 'Dresses, blouses and knitwear (cm)', 'body' => [
+                '- XS: bust 82, waist 64, hip 90',
+                '- S: bust 86, waist 68, hip 94',
+                '- M: bust 90, waist 72, hip 98',
+                '- L: bust 96, waist 78, hip 104',
+                '- XL: bust 102, waist 84, hip 110',
+            ]],
+            ['heading' => 'Shirts and trousers (cm)', 'body' => [
+                '- S: chest 92-97, waist 76-81',
+                '- M: chest 98-103, waist 82-87',
+                '- L: chest 104-110, waist 88-94',
+                '- XL: chest 111-117, waist 95-101',
+                'Chino trousers are cut with a 2cm allowance at the waistband so they can be taken in without disturbing the pocket bags.',
+            ]],
+            ['heading' => 'Footwear conversions', 'body' => [
+                '- EU 40 = UK 6.5 = US 7.5 = 25.5cm',
+                '- EU 41 = UK 7.5 = US 8.5 = 26.0cm',
+                '- EU 42 = UK 8 = US 9 = 26.5cm',
+                '- EU 43 = UK 9 = US 10 = 27.5cm',
+                '- EU 44 = UK 9.5 = US 10.5 = 28.0cm',
+                'Measure your foot in the evening, standing, heel against a wall. Feet swell through the day and a boot fitted in the morning will feel tight by six.',
+            ]],
+            ['heading' => 'Between sizes?', 'body' => [
+                'Size up for knitwear and outerwear, size down for anything with elastic or a wrap tie. Our returns are free, so ordering two sizes and sending one back is a perfectly reasonable way to settle it.',
+            ]],
+        ],
+    ],
+
+    'catalogue-current' => [
+        'id'      => 'catalogue-current',
+        'title'   => 'Thread & Stitch — Product Catalogue',
+        'label'   => 'Product catalogue',
+        'type'    => 'catalogue',
+        'product' => null,
+        'file'    => 'thread-and-stitch-catalogue.pdf',
+        'summary' => 'The full range with prices, in a printable list.',
+        'sections' => [],   // built from the live catalogue by download.php
+    ],
+];

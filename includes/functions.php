@@ -94,6 +94,70 @@ function attr_json(array $data): string
     return htmlspecialchars(json_encode($data), ENT_QUOTES, 'UTF-8');
 }
 
+/** Fetch a downloadable document by id, or null. */
+function get_document(string $id): ?array
+{
+    global $DOCUMENTS;
+    return $DOCUMENTS[$id] ?? null;
+}
+
+/** Documents attached to a specific product SKU. */
+function documents_for_product(string $sku): array
+{
+    global $DOCUMENTS;
+    return array_values(array_filter($DOCUMENTS, fn($d) => ($d['product'] ?? null) === $sku));
+}
+
+/** Documents that belong to the store rather than a single product. */
+function site_documents(): array
+{
+    global $DOCUMENTS;
+    return array_values(array_filter($DOCUMENTS, fn($d) => ($d['product'] ?? null) === null));
+}
+
+/**
+ * Render a list of document download links.
+ *
+ * Each link carries the GA4 file_download payload in data attributes, so the
+ * JS layer can fire the event without another lookup. The native `download`
+ * attribute is what makes the browser save the file — and it is also what
+ * tells the SPA router (see routable() in router.js) to leave the click alone.
+ */
+function render_document_links(array $docs, ?array $product = null): string
+{
+    if (!$docs) {
+        return '';
+    }
+    ob_start(); ?>
+    <ul class="doc-list">
+      <?php foreach ($docs as $doc): ?>
+        <li>
+          <a class="doc-link"
+             href="/download.php?doc=<?= urlencode($doc['id']) ?>"
+             download
+             data-download
+             data-doc-id="<?= htmlspecialchars($doc['id'], ENT_QUOTES) ?>"
+             data-doc-type="<?= htmlspecialchars($doc['type'], ENT_QUOTES) ?>"
+             data-file-name="<?= htmlspecialchars($doc['file'], ENT_QUOTES) ?>"
+             data-doc-label="<?= htmlspecialchars($doc['label'], ENT_QUOTES) ?>"
+             <?php if ($product): ?>
+             data-item-id="<?= htmlspecialchars($product['id'], ENT_QUOTES) ?>"
+             data-item-name="<?= htmlspecialchars($product['name'], ENT_QUOTES) ?>"
+             <?php endif; ?>>
+            <span class="doc-link__icon" aria-hidden="true">📄</span>
+            <span class="doc-link__body">
+              <span class="doc-link__title"><?= htmlspecialchars($doc['label']) ?></span>
+              <span class="doc-link__meta">PDF · <?= htmlspecialchars($doc['summary']) ?></span>
+            </span>
+            <span class="doc-link__cue" aria-hidden="true">↓</span>
+          </a>
+        </li>
+      <?php endforeach; ?>
+    </ul>
+    <?php
+    return ob_get_clean();
+}
+
 /**
  * Render a newsletter signup block.
  *

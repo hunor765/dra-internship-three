@@ -96,6 +96,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <?php endforeach; ?>
       <a href="/quiz.php"><?= htmlspecialchars($QUIZ['nav_label'] ?? 'Find your match') ?></a>
       <a href="/blog.php">Blog</a>
+      <a href="/downloads.php">Downloads</a>
       <a href="/locations.php">Stores</a>
       <a href="/contact.php">Contact</a>
     </nav>

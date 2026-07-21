@@ -333,6 +333,47 @@
     });
   }
 
+  /* ----------------------------------------------------------------------
+   * Document downloads — file_download
+   *
+   * GA4's recommended event for a file link. Enhanced Measurement fires this
+   * automatically for common extensions, but only ever with the link params;
+   * pushing it ourselves lets us carry the document type and, on a product
+   * page, which product the document belongs to.
+   *
+   * The link keeps its native `download` behaviour — we do not preventDefault,
+   * so the browser saves the file while the event goes to the dataLayer. The
+   * SPA router ignores [download] links, so no navigation is intercepted.
+   * -------------------------------------------------------------------- */
+  function wireDownloads() {
+    document.querySelectorAll('[data-download]').forEach(function (link) {
+      if (!bindOnce(link)) return;
+      link.addEventListener('click', function () {
+        var file = link.getAttribute('data-file-name') || '';
+        var dot  = file.lastIndexOf('.');
+
+        var payload = {
+          file_name:      file,
+          file_extension: dot > -1 ? file.slice(dot + 1) : '',
+          file_type:      link.getAttribute('data-doc-type') || '',
+          document_id:    link.getAttribute('data-doc-id') || '',
+          link_text:      link.getAttribute('data-doc-label') || link.textContent.trim(),
+          link_url:       link.href,
+          link_domain:    location.hostname
+        };
+
+        // Present only when the document hangs off a product page.
+        var itemId = link.getAttribute('data-item-id');
+        if (itemId) {
+          payload.item_id   = itemId;
+          payload.item_name = link.getAttribute('data-item-name') || '';
+        }
+
+        pushEvent('file_download', payload);
+      });
+    });
+  }
+
   /* ======================================================================
    * ADD TO CART
    * ==================================================================== */
@@ -597,6 +638,7 @@
     /* --- Configurators, search + recently-viewed -------------------- */
     wireConfigurators();
     wireSearch();
+    wireDownloads();
 
     /* --- Account chrome + user_data (auth.js) ----------------------- */
     if (window.SNS_USER && typeof window.SNS_USER.onPage === 'function') {

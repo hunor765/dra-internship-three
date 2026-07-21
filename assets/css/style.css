@@ -477,3 +477,27 @@ code { background:#efece0; padding:1px 5px; border-radius:5px; font-size:.85em; 
   .header-actions__account-label { display:none; }
   .header-search__input { width:96px; }
 }
+
+/* ---------- Document downloads ------------------------------------------ */
+.doc-list { list-style:none; margin:0; padding:0; display:grid; gap:10px; }
+.doc-link {
+  display:flex; align-items:flex-start; gap:14px;
+  padding:14px 16px; border:1px solid var(--line); border-radius:var(--radius);
+  background:#fff; text-decoration:none; color:inherit; transition:border-color .15s, box-shadow .15s;
+}
+.doc-link:hover { border-color:var(--clay); box-shadow:var(--shadow); }
+.doc-link__icon { font-size:1.4rem; line-height:1.2; flex:none; }
+.doc-link__body { display:flex; flex-direction:column; gap:3px; min-width:0; }
+.doc-link__title { font-weight:600; }
+.doc-link__meta { color:var(--muted); font-size:.88rem; }
+.doc-link__cue { margin-left:auto; align-self:center; color:var(--muted); flex:none; font-size:1.1rem; }
+.doc-link:hover .doc-link__cue { color:var(--clay); }
+.doc-group { margin-bottom:22px; }
+.doc-group__title { margin:0 0 8px; font-size:1rem; display:flex; gap:10px; align-items:baseline; flex-wrap:wrap; }
+.doc-group__title a { text-decoration:none; color:inherit; }
+.doc-group__title a:hover { text-decoration:underline; }
+.doc-group__title .muted { font-weight:400; font-size:.88rem; }
+@media (max-width:560px) {
+  .doc-link { padding:12px; gap:10px; }
+  .doc-link__meta { font-size:.82rem; }
+}

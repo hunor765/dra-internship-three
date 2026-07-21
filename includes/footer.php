@@ -23,6 +23,7 @@
         <a href="/register.php">Create account</a>
         <a href="/wishlist.php">Wishlist</a>
         <a href="/cart.php">Cart</a>
+        <a href="/downloads.php">Downloads</a>
       </div>
       <div>
         <h4>Company</h4>

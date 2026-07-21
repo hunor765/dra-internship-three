@@ -109,6 +109,14 @@ $related = array_slice(array_values($related), 0, 4);
   </div>
 </div>
 
+<?php $productDocs = documents_for_product($product['id']); ?>
+<?php if ($productDocs): ?>
+<section class="doc-section" style="margin-top:48px;">
+  <div class="section-head"><h2>Documents &amp; downloads</h2></div>
+  <?= render_document_links($productDocs, $product) ?>
+</section>
+<?php endif; ?>
+
 <?php if ($related): ?>
 <section style="margin-top:56px;">
   <div class="section-head"><h2>You might also like</h2></div>
