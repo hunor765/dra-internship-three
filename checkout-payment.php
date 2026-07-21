@@ -59,6 +59,9 @@ require __DIR__ . '/includes/header.php';
     <h3>Order summary</h3>
     <div data-summary-lines></div>
     <div class="summary__row"><span>Subtotal</span><span data-subtotal>$0.00</span></div>
+    <div class="summary__row summary__row--discount" data-discount-row style="display:none;">
+      <span>Discount <span class="coupon-tag" data-coupon-tag></span></span><span data-discount>-$0.00</span>
+    </div>
     <div class="summary__row"><span>Shipping (<span data-tier>Standard</span>)</span><span data-shipping>Free</span></div>
     <div class="summary__row summary__row--total"><span>Total</span><span data-total>$0.00</span></div>
     <button type="submit" class="btn btn--clay btn--block" style="margin-top:16px;">Place order</button>
@@ -83,12 +86,20 @@ require __DIR__ . '/includes/header.php';
         (i.item_variant ? ' (' + i.item_variant + ')' : '') +
         ' × ' + i.quantity + '</span><span>' + money(i.price * i.quantity) + '</span></div>';
     }).join('');
-    var subtotal = SNS.cartValue(cart);
+    var t = SNS.orderTotals(cart);
     var ship = shippingCost();
     form.querySelector('[data-tier]').textContent = tier();
-    form.querySelector('[data-subtotal]').textContent = money(subtotal);
+    form.querySelector('[data-subtotal]').textContent = money(t.subtotal);
+    var dr = form.querySelector('[data-discount-row]');
+    if (t.discount > 0) {
+      dr.style.display = '';
+      form.querySelector('[data-discount]').textContent = '-' + money(t.discount);
+      form.querySelector('[data-coupon-tag]').textContent = t.couponCode || '';
+    } else {
+      dr.style.display = 'none';
+    }
     form.querySelector('[data-shipping]').textContent = ship ? money(ship) : 'Free';
-    form.querySelector('[data-total]').textContent = money(subtotal + ship);
+    form.querySelector('[data-total]').textContent = money(t.total + ship);
   }
 
   SNS_READY(function () {
@@ -113,22 +124,27 @@ require __DIR__ . '/includes/header.php';
       if (!cart.length) return;
 
       var paymentType = form.querySelector('input[name="payment_type"]:checked').value;
-      var subtotal = SNS.cartValue(cart);
+      var t = SNS.orderTotals(cart);
       var ship = shippingCost();
 
       // add_payment_info — fires as the customer commits a payment method.
-      SNS.pushEcommerce('add_payment_info', {
+      var payPayload = {
         currency: SNS.currency,
-        value: subtotal,
+        value: t.total,
         payment_type: paymentType,
         items: cart
-      });
+      };
+      if (t.couponCode) payPayload.coupon = t.couponCode;
+      SNS.pushEcommerce('add_payment_info', payPayload);
 
       // Build the order object that the thank-you page will use for purchase.
       var order = {
         transaction_id: 'SNS-' + Date.now().toString().slice(-8) + '-' + Math.floor(Math.random() * 900 + 100),
         currency: SNS.currency,
-        value: SNS.round2(subtotal + ship),   // GA4 purchase value = total revenue
+        value: SNS.round2(t.total + ship),    // GA4 purchase value = discounted subtotal + shipping
+        subtotal: t.subtotal,
+        discount: t.discount,
+        coupon: t.couponCode,
         tax: 0,
         shipping: SNS.round2(ship),
         shipping_tier: tier(),
@@ -138,8 +154,9 @@ require __DIR__ . '/includes/header.php';
 
       localStorage.setItem('sns_last_order', JSON.stringify(order));
 
-      // Empty the cart now that the order is placed.
+      // Empty the cart + consume the coupon now that the order is placed.
       SNS.clearCart();
+      SNS.setCoupon(null);
 
       window.location.href = '/thank-you.php';
     });

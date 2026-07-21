@@ -19,6 +19,8 @@
       </div>
       <div>
         <h4>Account</h4>
+        <a href="/account.php">Sign in / Account</a>
+        <a href="/register.php">Create account</a>
         <a href="/wishlist.php">Wishlist</a>
         <a href="/cart.php">Cart</a>
       </div>
@@ -39,6 +41,7 @@
 
 <script src="/assets/js/main.js"></script>
 <script src="/assets/js/content.js"></script>
+<script src="/assets/js/auth.js"></script>
 <script src="/assets/js/router.js"></script>
 </body>
 </html>

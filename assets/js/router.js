@@ -84,6 +84,14 @@
         current.removeAttribute('aria-busy');
         window.scrollTo(0, 0);
 
+        // The GA4 config tag fired page_view only once, on the first load.
+        // Emit a fresh page_view for this route BEFORE the view_* events so
+        // the sequence mirrors a real multi-page load (page_view, then the
+        // ecommerce/content events for the new screen).
+        if (window.SNS && typeof window.SNS.pushPageView === 'function') {
+          window.SNS.pushPageView();
+        }
+
         // Order matters, and mirrors the original page-load order:
         // the page's own script runs first, then the global wiring.
         executeScripts(current);

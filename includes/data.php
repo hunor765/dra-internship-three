@@ -12,6 +12,7 @@
 $STORE = [
     'name'     => 'Thread & Stitch',
     'currency' => 'USD',
+    'icon'     => '👗',
 ];
 
 /* ---------------------------------------------------------------------------
@@ -72,6 +73,16 @@ $PRODUCTS = [
             ['id' => 'l',  'name' => 'L'],
             ['id' => 'xl', 'name' => 'XL'],
         ],
+        'options' => [
+            ['id' => 'monogram', 'label' => 'Monogram', 'choices' => [
+                ['id' => 'none',     'name' => 'No monogram', 'price' => 0],
+                ['id' => 'initials', 'name' => 'Add initials', 'price' => 6.00],
+            ]],
+            ['id' => 'wrap', 'label' => 'Gift wrapping', 'choices' => [
+                ['id' => 'none', 'name' => 'No wrapping',   'price' => 0],
+                ['id' => 'box',  'name' => '+ Gift box',     'price' => 5.00],
+            ]],
+        ],
     ],
     'SKU-BLS-002' => [
         'id'       => 'SKU-BLS-002',
@@ -117,6 +128,16 @@ $PRODUCTS = [
             ['id' => 'l',  'name' => 'L'],
             ['id' => 'xl', 'name' => 'XL'],
         ],
+        'options' => [
+            ['id' => 'monogram', 'label' => 'Monogram', 'choices' => [
+                ['id' => 'none',     'name' => 'No monogram',   'price' => 0],
+                ['id' => 'initials', 'name' => 'Cuff initials',  'price' => 7.00],
+            ]],
+            ['id' => 'giftbox', 'label' => 'Gift box', 'choices' => [
+                ['id' => 'none', 'name' => 'No gift box',  'price' => 0],
+                ['id' => 'box',  'name' => '+ Gift box',    'price' => 5.00],
+            ]],
+        ],
     ],
     'SKU-CHN-005' => [
         'id'       => 'SKU-CHN-005',
@@ -131,6 +152,16 @@ $PRODUCTS = [
             ['id' => '32', 'name' => 'W32'],
             ['id' => '34', 'name' => 'W34'],
             ['id' => '36', 'name' => 'W36'],
+        ],
+        'options' => [
+            ['id' => 'hemming', 'label' => 'Hemming', 'choices' => [
+                ['id' => 'standard', 'name' => 'Standard length',  'price' => 0],
+                ['id' => 'tailored', 'name' => 'Tailored hem',     'price' => 8.00],
+            ]],
+            ['id' => 'wrap', 'label' => 'Gift wrapping', 'choices' => [
+                ['id' => 'none', 'name' => 'No wrapping', 'price' => 0],
+                ['id' => 'box',  'name' => '+ Gift box',   'price' => 5.00],
+            ]],
         ],
     ],
     'SKU-TEE-006' => [
@@ -163,6 +194,16 @@ $PRODUCTS = [
             ['id' => '9',  'name' => 'US 9'],
             ['id' => '10', 'name' => 'US 10'],
             ['id' => '11', 'name' => 'US 11'],
+        ],
+        'options' => [
+            ['id' => 'laces', 'label' => 'Extra laces', 'choices' => [
+                ['id' => 'none', 'name' => 'No extra laces',  'price' => 0],
+                ['id' => 'pair', 'name' => '+ 2 spare pairs',  'price' => 6.00],
+            ]],
+            ['id' => 'protect', 'label' => 'Protection', 'choices' => [
+                ['id' => 'none',  'name' => 'No spray',            'price' => 0],
+                ['id' => 'spray', 'name' => '+ Waterproof spray',   'price' => 8.00],
+            ]],
         ],
     ],
     'SKU-BOO-008' => [
@@ -204,6 +245,16 @@ $PRODUCTS = [
             ['id' => 'natural',  'name' => 'Natural'],
             ['id' => 'charcoal', 'name' => 'Charcoal'],
         ],
+        'options' => [
+            ['id' => 'monogram', 'label' => 'Monogram', 'choices' => [
+                ['id' => 'none',     'name' => 'No monogram', 'price' => 0],
+                ['id' => 'initials', 'name' => 'Add initials', 'price' => 6.00],
+            ]],
+            ['id' => 'pouch', 'label' => 'Inner pouch', 'choices' => [
+                ['id' => 'none', 'name' => 'No pouch',        'price' => 0],
+                ['id' => 'zip',  'name' => '+ Zip pouch',      'price' => 9.00],
+            ]],
+        ],
     ],
     'SKU-BLT-011' => [
         'id'       => 'SKU-BLT-011',
@@ -232,6 +283,18 @@ $PRODUCTS = [
 ];
 
 /* ---------------------------------------------------------------------------
+ * Coupon / promo codes (advanced ecommerce).
+ *
+ * Applied on the cart; the code + discount ride through begin_checkout,
+ * add_shipping_info, add_payment_info and purchase as the GA4 `coupon` param,
+ * and the discount reduces the order value.
+ * ------------------------------------------------------------------------ */
+$COUPONS = [
+    'THREAD10' => ['code' => 'THREAD10', 'type' => 'percent', 'amount' => 10,    'label' => '10% off your order'],
+    'STYLE15'  => ['code' => 'STYLE15',  'type' => 'fixed',   'amount' => 15.00, 'label' => '$15 off your order'],
+];
+
+/* ---------------------------------------------------------------------------
  * Promotions (used for view_promotion / select_promotion events)
  * ------------------------------------------------------------------------ */
 $PROMOTIONS = [
@@ -240,6 +303,29 @@ $PROMOTIONS = [
         'promotion_name' => 'Summer Style Edit',
         'creative_name'  => 'hero_banner',
         'creative_slot'  => 'homepage_hero',
+    ],
+];
+
+/* ---------------------------------------------------------------------------
+ * Product personalization quiz (quiz.php)
+ *
+ * Four questions; on completion the client picks a random handful of products
+ * from the catalog as "recommendations" and fires quiz_complete +
+ * view_item_list. The answers themselves don't filter — the match is random.
+ * ------------------------------------------------------------------------ */
+$QUIZ = [
+    'id'               => 'style_match',
+    'nav_label'        => 'Style quiz',
+    'title'            => 'Find your style match',
+    'intro'            => 'Answer four quick questions and we\'ll pull a few pieces from the shop that could be a good fit.',
+    'result_list_id'   => 'quiz_recommendations',
+    'result_list_name' => 'Quiz Recommendations',
+    'result_count'     => 3,
+    'questions'        => [
+        ['id' => 'occasion', 'q' => 'What are you shopping for?', 'a' => ['Everyday basics', 'A special occasion', 'Workwear', 'A wardrobe refresh']],
+        ['id' => 'style',    'q' => 'Your style leans…',          'a' => ['Classic & timeless', 'Relaxed & casual', 'Bold & trend-led', 'Minimal & clean']],
+        ['id' => 'fabric',   'q' => 'Which fabrics do you love?', 'a' => ['Natural & breathable', 'Cosy knits', 'Structured & crisp', 'Whatever feels soft']],
+        ['id' => 'palette',  'q' => 'Your go-to palette?',        'a' => ['Neutrals', 'Earth tones', 'Monochrome', 'Pops of colour']],
     ],
 ];
 

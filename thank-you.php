@@ -29,6 +29,9 @@ require __DIR__ . '/includes/header.php';
     <div class="summary__row"><span>Shipping</span><span data-shiptier></span></div>
     <hr style="border:none;border-top:1px solid var(--line);margin:12px 0;">
     <div data-lines></div>
+    <div class="summary__row summary__row--discount" data-discount-row style="display:none;">
+      <span>Discount <span class="coupon-tag" data-coupon-tag></span></span><span data-discount></span>
+    </div>
     <div class="summary__row"><span>Shipping cost</span><span data-shipcost></span></div>
     <div class="summary__row summary__row--total"><span>Total paid</span><span data-total></span></div>
   </div>
@@ -64,17 +67,31 @@ require __DIR__ . '/includes/header.php';
         ' × ' + i.quantity + '</span><span>' + money(i.price * i.quantity) + '</span></div>';
     }).join('');
 
+    if (order.discount && order.discount > 0) {
+      content.querySelector('[data-discount-row]').style.display = '';
+      content.querySelector('[data-discount]').textContent = '-' + money(order.discount);
+      content.querySelector('[data-coupon-tag]').textContent = order.coupon || '';
+    }
+
     // Fire purchase ONCE. Guard against refreshes double-counting revenue.
     if (localStorage.getItem('sns_purchase_fired') !== order.transaction_id) {
-      SNS.pushEcommerce('purchase', {
+      var purchase = {
         transaction_id: order.transaction_id,
         currency: order.currency,
         value: order.value,
         tax: order.tax,
         shipping: order.shipping,
         items: order.items
-      });
+      };
+      if (order.coupon) purchase.coupon = order.coupon;
+      SNS.pushEcommerce('purchase', purchase);
       localStorage.setItem('sns_purchase_fired', order.transaction_id);
+
+      // Update the signed-in user's lifetime stats (revenue, last order…),
+      // which then feed the user_data dataLayer object.
+      if (window.SNS_USER && typeof window.SNS_USER.recordPurchase === 'function') {
+        window.SNS_USER.recordPurchase(order);
+      }
     }
   });
 })();

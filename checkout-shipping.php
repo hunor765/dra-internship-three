@@ -60,6 +60,9 @@ require __DIR__ . '/includes/header.php';
     <h3>Order summary</h3>
     <div data-summary-lines></div>
     <div class="summary__row"><span>Subtotal</span><span data-subtotal>$0.00</span></div>
+    <div class="summary__row summary__row--discount" data-discount-row style="display:none;">
+      <span>Discount <span class="coupon-tag" data-coupon-tag></span></span><span data-discount>-$0.00</span>
+    </div>
     <div class="summary__row"><span>Shipping</span><span data-shipping>Free</span></div>
     <div class="summary__row summary__row--total"><span>Total</span><span data-total>$0.00</span></div>
     <button type="submit" class="btn btn--block" style="margin-top:16px;">Continue to payment</button>
@@ -86,11 +89,19 @@ require __DIR__ . '/includes/header.php';
         (i.item_variant ? ' (' + i.item_variant + ')' : '') +
         ' × ' + i.quantity + '</span><span>' + money(i.price * i.quantity) + '</span></div>';
     }).join('');
-    var subtotal = SNS.cartValue(cart);
+    var t = SNS.orderTotals(cart);
     var ship = shippingCost();
-    form.querySelector('[data-subtotal]').textContent = money(subtotal);
+    form.querySelector('[data-subtotal]').textContent = money(t.subtotal);
+    var dr = form.querySelector('[data-discount-row]');
+    if (t.discount > 0) {
+      dr.style.display = '';
+      form.querySelector('[data-discount]').textContent = '-' + money(t.discount);
+      form.querySelector('[data-coupon-tag]').textContent = t.couponCode || '';
+    } else {
+      dr.style.display = 'none';
+    }
     form.querySelector('[data-shipping]').textContent = ship ? money(ship) : 'Free';
-    form.querySelector('[data-total]').textContent = money(subtotal + ship);
+    form.querySelector('[data-total]').textContent = money(t.total + ship);
   }
 
   SNS_READY(function () {
@@ -115,14 +126,19 @@ require __DIR__ . '/includes/header.php';
       // Persist chosen tier so the payment + purchase steps can reuse it.
       localStorage.setItem('sns_shipping_tier', tier);
 
-      window.location.href = '/checkout-payment.php';
-
-      SNS.pushEcommerce('add_shipping_info', {
+      var t = SNS.orderTotals(SNS.getCart());
+      var payload = {
         currency: SNS.currency,
-        value: SNS.cartValue(SNS.getCart()),
+        value: t.total,
         shipping_tier: tier,
         items: SNS.getCart()
-      });
+      };
+      if (t.couponCode) payload.coupon = t.couponCode;
+      SNS.pushEcommerce('add_shipping_info', payload);
+
+      // Navigate only AFTER the push is queued. Navigating first was the bug:
+      // the browser could start unloading before the event flushed.
+      window.location.href = '/checkout-payment.php';
     });
   });
 })();

@@ -101,12 +101,73 @@
     });
   }
 
+  /* ----------------------------------------------------------------------
+   * SPA page_view
+   *
+   * The GTM container + GA4 config tag load exactly once, on the first page.
+   * On every client-side route change nothing re-fires a page_view, so the
+   * router calls this after each swap to emit one with the *new* URL/title.
+   * (On the very first load the GA4 config tag already sends page_view, so
+   * this is only ever called by router.js — never on the landing page.)
+   * -------------------------------------------------------------------- */
+  function pushPageView() {
+    runWhenGtmReady(function () {
+      window.dataLayer.push({
+        event: 'page_view',
+        page_location: location.href,
+        page_path: location.pathname + location.search,
+        page_title: document.title
+      });
+    });
+  }
+
   function cartValue(cart) {
     return round2(cart.reduce(function (sum, i) {
       return sum + (i.price * i.quantity);
     }, 0));
   }
   function round2(n) { return Math.round(n * 100) / 100; }
+
+  /* ----------------------------------------------------------------------
+   * Coupons (advanced ecommerce)
+   *
+   * A single applied coupon lives in localStorage. It reduces the order value
+   * and rides through the whole funnel as the GA4 `coupon` param. The coupon
+   * table is injected by the server (window.SNS_COUPONS).
+   * -------------------------------------------------------------------- */
+  var COUPON_KEY = 'sns_coupon';
+  function getCoupon() {
+    try { return JSON.parse(localStorage.getItem(COUPON_KEY)) || null; }
+    catch (e) { return null; }
+  }
+  function setCoupon(c) {
+    if (c) localStorage.setItem(COUPON_KEY, JSON.stringify(c));
+    else localStorage.removeItem(COUPON_KEY);
+  }
+  function findCoupon(code) {
+    var all = window.SNS_COUPONS || {};
+    return all[(code || '').trim().toUpperCase()] || null;
+  }
+  function couponDiscount(subtotal, coupon) {
+    coupon = coupon || getCoupon();
+    if (!coupon) return 0;
+    var d = coupon.type === 'percent' ? subtotal * (coupon.amount / 100) : coupon.amount;
+    return round2(Math.min(d, subtotal));
+  }
+  /* One source of truth for order money used across the funnel pages. */
+  function orderTotals(cart) {
+    cart = cart || getCart();
+    var subtotal = cartValue(cart);
+    var coupon   = getCoupon();
+    var discount = couponDiscount(subtotal, coupon);
+    return {
+      subtotal:   subtotal,
+      discount:   discount,
+      total:      round2(subtotal - discount),
+      coupon:     coupon,
+      couponCode: coupon ? coupon.code : null
+    };
+  }
 
   /* ----------------------------------------------------------------------
    * Badge counts in the header
@@ -128,6 +189,148 @@
   function itemFromEl(el) {
     try { return JSON.parse(el.getAttribute('data-item')); }
     catch (e) { return null; }
+  }
+
+  /* ----------------------------------------------------------------------
+   * Item configurator
+   *
+   * A product scope ([data-product-scope]) may carry a primary variant
+   * ([data-variant-select]) plus any number of configurator option groups
+   * ([data-config-option]). Each <option> can declare a data-price delta.
+   * We fold every chosen option into a single human-readable item_variant
+   * and adjust the item price by the sum of the deltas, so the configured
+   * price + variant ride through the whole funnel via the dataLayer.
+   * -------------------------------------------------------------------- */
+  function applyConfiguration(item, scope) {
+    if (!item || !scope || !scope.querySelector) return item;
+    var parts = [];
+    var delta = 0;
+
+    var variantSel = scope.querySelector('[data-variant-select]');
+    if (variantSel && variantSel.value) {
+      parts.push(variantSel.options[variantSel.selectedIndex].text);
+    }
+    scope.querySelectorAll('[data-config-option]').forEach(function (sel) {
+      var opt = sel.options[sel.selectedIndex];
+      if (!opt) return;
+      parts.push(opt.getAttribute('data-name') || opt.text);
+      delta += parseFloat(opt.getAttribute('data-price')) || 0;
+    });
+
+    if (parts.length) item.item_variant = parts.join(' / ');
+    if (delta) item.price = round2(item.price + delta);
+    return item;
+  }
+
+  /* Live-update the configured unit price shown on the product page, and
+   * keep the wishlist heart in sync as options change. Wired once per scope. */
+  function wireConfigurators() {
+    document.querySelectorAll('[data-product-scope]').forEach(function (scope) {
+      var priceEl = scope.querySelector('[data-live-price]');
+      var addBtn  = scope.querySelector('[data-add-to-cart]');
+      if (!priceEl || !addBtn || !bindOnce(scope)) return;
+
+      var base    = (itemFromEl(addBtn) || {}).price || 0;
+      var selects = scope.querySelectorAll('[data-variant-select],[data-config-option]');
+
+      function update() {
+        var delta = 0;
+        scope.querySelectorAll('[data-config-option]').forEach(function (sel) {
+          var opt = sel.options[sel.selectedIndex];
+          if (opt) delta += parseFloat(opt.getAttribute('data-price')) || 0;
+        });
+        priceEl.textContent = '$' + round2(base + delta).toFixed(2);
+      }
+      selects.forEach(function (sel) { sel.addEventListener('change', update); });
+      update();
+    });
+  }
+
+  /* ----------------------------------------------------------------------
+   * Recently viewed (advanced ecommerce)
+   *
+   * Product pages record themselves; any [data-recently-viewed] container is
+   * then filled with cards and fires a view_item_list for the "Recently
+   * Viewed" list. Cards reuse the standard data-select-item / data-add-to-cart
+   * markup, so the normal binders below wire them (render runs first).
+   * -------------------------------------------------------------------- */
+  var RECENT_KEY = 'sns_recent';
+  function getRecent() { return read(RECENT_KEY); }
+  function recordRecent(item) {
+    if (!item || !item.item_id) return;
+    var list = getRecent().filter(function (i) { return i.item_id !== item.item_id; });
+    list.unshift(item);
+    write(RECENT_KEY, list.slice(0, 8));
+  }
+  function recordCurrentProduct() {
+    var scope = document.querySelector('[data-recent-item]');
+    if (!scope) return;
+    try { recordRecent(JSON.parse(scope.getAttribute('data-recent-item'))); }
+    catch (e) {}
+  }
+  function renderRecentlyViewed() {
+    var host = document.querySelector('[data-recently-viewed]');
+    if (!host) return;
+    var exclude = host.getAttribute('data-exclude') || '';
+    var items = getRecent().filter(function (i) { return i.item_id !== exclude; }).slice(0, 4);
+
+    if (!items.length) { host.style.display = 'none'; return; }
+    host.style.display = '';
+
+    var listId = 'recently_viewed', listName = 'Recently Viewed';
+    var icon = window.STORE_ICON || '🛍️';
+    host.innerHTML =
+      '<div class="section-head"><h2>Recently viewed</h2></div>' +
+      '<div class="product-grid">' + items.map(function (it, i) {
+        var url  = '/product.php?id=' + encodeURIComponent(it.item_id);
+        var data = JSON.stringify(Object.assign({}, it, {
+          index: i + 1, item_list_id: listId, item_list_name: listName
+        })).replace(/"/g, '&quot;');
+        return '<article class="product-card">' +
+          '<a class="prod-link" href="' + url + '" data-select-item data-item="' + data +
+            '" data-list-id="' + listId + '" data-list-name="' + listName + '">' +
+            '<div class="product-photo" style="height:180px;background:var(--cream);border-color:var(--line);">' +
+              '<span class="product-photo__icon">' + icon + '</span></div></a>' +
+          '<div class="product-card__body">' +
+            '<span class="product-card__cat">' + (it.item_category || '') + '</span>' +
+            '<h3 class="product-card__name"><a href="' + url + '" data-select-item data-item="' + data +
+              '" data-list-id="' + listId + '" data-list-name="' + listName + '">' + it.item_name + '</a></h3>' +
+            '<div class="product-card__meta"><span class="price">$' + round2(it.price).toFixed(2) + '</span></div>' +
+          '</div>' +
+          '<div class="product-card__actions" data-product-scope>' +
+            '<button class="btn" data-add-to-cart data-item="' + data + '">Add to cart</button>' +
+            '<button class="wishlist-btn" data-toggle-wishlist data-item="' + data + '" aria-label="Add to wishlist">♥</button>' +
+          '</div></article>';
+      }).join('') + '</div>';
+
+    pushEcommerce('view_item_list', {
+      item_list_id: listId,
+      item_list_name: listName,
+      items: items.map(function (it, i) {
+        return Object.assign({}, it, { index: i + 1, item_list_id: listId, item_list_name: listName });
+      })
+    });
+  }
+
+  /* ----------------------------------------------------------------------
+   * Header search — SPA-aware submit to /search.php (view_search_results
+   * fires on the search page itself, from its queued page dataLayer).
+   * -------------------------------------------------------------------- */
+  function wireSearch() {
+    document.querySelectorAll('[data-search-form]').forEach(function (form) {
+      if (!bindOnce(form)) return;
+      form.addEventListener('submit', function (e) {
+        var input = form.querySelector('input[name="q"]');
+        var q = (input && input.value || '').trim();
+        if (!q) { e.preventDefault(); return; }
+        var url = '/search.php?q=' + encodeURIComponent(q);
+        if (window.SNS_ROUTER && typeof window.SNS_ROUTER.navigate === 'function') {
+          e.preventDefault();
+          window.SNS_ROUTER.navigate(url, true);
+        }
+        // else: let the native GET submit happen (full page load).
+      });
+    });
   }
 
   /* ======================================================================
@@ -166,7 +369,7 @@
     pushEcommerce('remove_from_cart', {
       currency: CURRENCY,
       value: round2(item.price * item.quantity),
-      items: getCart()
+      items: [item]
     });
     // Re-render the cart page if we're on it.
     if (typeof window.renderCart === 'function') window.renderCart();
@@ -222,6 +425,10 @@
       value: round2(item.price * item.quantity),
       items: [item]
     });
+    // Feed the user's "last category wishlisted" stat (user_data).
+    if (window.SNS_USER && typeof window.SNS_USER.recordWishlist === 'function') {
+      window.SNS_USER.recordWishlist(item);
+    }
     return true; // added
   }
 
@@ -273,58 +480,43 @@
     return true;
   }
 
-  /* ======================================================================
-   * PAGE INIT — runs on first load and again after every SPA navigation.
-   * ==================================================================== */
-  function initPage() {
-    refreshBadges();
+  /* ----------------------------------------------------------------------
+   * Bind the standard product-card controls within a root element. Used by
+   * initPage(document) and exposed as SNS.bindCards so dynamically-injected
+   * card grids (quiz results, etc.) can be wired after the initial page init.
+   * -------------------------------------------------------------------- */
+  function bindProductControls(root) {
+    root = root || document;
 
-    /* --- Flush page-load view_* events queued in the <head> --------- */
-    // These wait for GTM exactly like interaction events. Order preserved.
-    var pending = window.SNS_PENDING_EVENTS || [];
-    pending.forEach(function (evt) {
-      runWhenGtmReady(function () {
-        window.dataLayer.push({ ecommerce: null });
-        window.dataLayer.push(evt);
-      });
-    });
-    window.SNS_PENDING_EVENTS = [];
-
-    /* --- Add to cart buttons ---------------------------------------- */
-    document.querySelectorAll('[data-add-to-cart]').forEach(function (btn) {
+    /* Add to cart */
+    root.querySelectorAll('[data-add-to-cart]').forEach(function (btn) {
       if (!bindOnce(btn)) return;
       btn.addEventListener('click', function () {
         var item = itemFromEl(btn);
         if (!item) return;
 
-        // Product page may carry a variant selector + quantity input.
+        // Product page may carry a variant selector, configurator options
+        // and a quantity input — fold them all into the item.
         var scope = btn.closest('[data-product-scope]') || document;
-        var variantSel = scope.querySelector('[data-variant-select]');
-        var qtyInput   = scope.querySelector('[data-qty-input]');
+        var qtyInput = scope.querySelector('[data-qty-input]');
 
-        if (variantSel && variantSel.value) {
-          item.item_variant = variantSel.options[variantSel.selectedIndex].text;
-        }
+        applyConfiguration(item, scope);
         if (qtyInput) {
           item.quantity = Math.max(1, parseInt(qtyInput.value, 10) || 1);
         }
         addToCart(item);
-        flash(btn, 'Added \u2713');
+        flash(btn, 'Added ✓');
       });
     });
 
-    /* --- Add / remove wishlist buttons ------------------------------ */
-    document.querySelectorAll('[data-toggle-wishlist]').forEach(function (btn) {
+    /* Add / remove wishlist */
+    root.querySelectorAll('[data-toggle-wishlist]').forEach(function (btn) {
       var scope = btn.closest('[data-product-scope]');
-      var variantSel = scope && scope.querySelector('[data-variant-select]');
 
-      // Build the item for the *currently selected* variant.
+      // Build the item for the *currently selected* variant + configuration.
       function currentItem() {
         var it = itemFromEl(btn);
-        if (it && variantSel && variantSel.value) {
-          it.item_variant = variantSel.options[variantSel.selectedIndex].text;
-        }
-        return it;
+        return it ? applyConfiguration(it, scope) : it;
       }
       // Reflect saved state for this exact variant.
       function reflect() {
@@ -335,19 +527,23 @@
 
       reflect();
       if (!bindOnce(btn)) return;
-      if (variantSel) variantSel.addEventListener('change', reflect);
+      if (scope) {
+        scope.querySelectorAll('[data-variant-select],[data-config-option]').forEach(function (sel) {
+          sel.addEventListener('change', reflect);
+        });
+      }
 
       btn.addEventListener('click', function () {
         var it = currentItem();
         if (!it) return;
         var added = toggleWishlist(it);
         btn.classList.toggle('is-active', added);
-        flash(btn, added ? 'Saved \u2665' : 'Removed');
+        flash(btn, added ? 'Saved ♥' : 'Removed');
       });
     });
 
-    /* --- Product card clicks (select_item) -------------------------- */
-    document.querySelectorAll('[data-select-item]').forEach(function (link) {
+    /* Product card clicks (select_item) */
+    root.querySelectorAll('[data-select-item]').forEach(function (link) {
       if (!bindOnce(link)) return;
       link.addEventListener('click', function () {
         var item = itemFromEl(link);
@@ -355,6 +551,32 @@
         selectItem(item, link.getAttribute('data-list-id'), link.getAttribute('data-list-name'));
       });
     });
+  }
+
+  /* ======================================================================
+   * PAGE INIT — runs on first load and again after every SPA navigation.
+   * ==================================================================== */
+  function initPage() {
+    refreshBadges();
+
+    /* --- Record the current product + paint "Recently viewed" ------- *
+     * Done before the binders so injected cards get wired below.       */
+    recordCurrentProduct();
+    renderRecentlyViewed();
+
+    /* --- Flush page-load view_* events queued in <main> ------------- */
+    // These wait for GTM exactly like interaction events. Order preserved.
+    var pending = window.SNS_PENDING_EVENTS || [];
+    pending.forEach(function (evt) {
+      runWhenGtmReady(function () {
+        window.dataLayer.push({ ecommerce: null });
+        window.dataLayer.push(evt);
+      });
+    });
+    window.SNS_PENDING_EVENTS = [];
+
+    /* --- Product card controls (add_to_cart / wishlist / select_item) */
+    bindProductControls(document);
 
     /* --- Promotion clicks (select_promotion) ------------------------ */
     document.querySelectorAll('[data-select-promotion]').forEach(function (link) {
@@ -367,19 +589,19 @@
       });
     });
 
-    /* --- Begin checkout button -------------------------------------- */
-    document.querySelectorAll('[data-begin-checkout]').forEach(function (btn) {
-      if (!bindOnce(btn)) return;
-      btn.addEventListener('click', function (e) {
-        var cart = getCart();
-        if (!cart.length) return;
-        pushEcommerce('begin_checkout', {
-          currency: CURRENCY,
-          value: cartValue(cart),
-          items: cart
-        });
-      });
-    });
+    /* --- begin_checkout is owned by cart.php's renderCart() ----------
+     * cart.php re-binds the checkout button on every re-render, so binding
+     * it here as well would double-fire begin_checkout on the first render
+     * (the long-standing bug). Leave it to the cart page. */
+
+    /* --- Configurators, search + recently-viewed -------------------- */
+    wireConfigurators();
+    wireSearch();
+
+    /* --- Account chrome + user_data (auth.js) ----------------------- */
+    if (window.SNS_USER && typeof window.SNS_USER.onPage === 'function') {
+      window.SNS_USER.onPage();
+    }
   }
 
   SNS_READY(initPage);
@@ -410,8 +632,19 @@
     round2: round2,
     pushEcommerce: pushEcommerce,
     pushEvent: pushEvent,
+    pushPageView: pushPageView,
     initPage: initPage,
     currency: CURRENCY,
-    refreshBadges: refreshBadges
+    refreshBadges: refreshBadges,
+    getRecent: getRecent,
+    recordRecent: recordRecent,
+    applyConfiguration: applyConfiguration,
+    addToCart: addToCart,
+    bindCards: bindProductControls,
+    getCoupon: getCoupon,
+    setCoupon: setCoupon,
+    findCoupon: findCoupon,
+    couponDiscount: couponDiscount,
+    orderTotals: orderTotals
   };
 })();

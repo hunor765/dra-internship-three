@@ -27,11 +27,6 @@ if (!empty($product['variants'])) {
     $viewItem['item_variant'] = $product['variants'][0]['name'];
 }
 
-// Legacy key names kept for the old tag — TODO migrate to GA4 naming.
-$viewItem['id']    = $viewItem['item_id'];
-$viewItem['price'] = number_format((float) $product['price'], 2);
-unset($viewItem['item_id']);
-
 $PAGE_DATALAYER = [[
     'event'     => 'view_item',
     'ecommerce' => [
@@ -56,7 +51,7 @@ $related = array_slice(array_values($related), 0, 4);
   <?= htmlspecialchars($product['name']) ?>
 </nav>
 
-<div class="product-detail" data-product-scope>
+<div class="product-detail" data-product-scope data-recent-item="<?= $itemJson ?>">
   <div>
     <?= product_image($product, 380) ?>
   </div>
@@ -65,17 +60,38 @@ $related = array_slice(array_values($related), 0, 4);
     <span class="product-card__cat"><?= htmlspecialchars($cat['name']) ?> · <?= htmlspecialchars($product['brand']) ?></span>
     <h1><?= htmlspecialchars($product['name']) ?></h1>
     <div class="rating">★ <?= number_format($product['rating'], 1) ?> / 5</div>
-    <div class="product-detail__price"><?= money($product['price']) ?></div>
+    <div class="product-detail__price"><span data-live-price><?= money($product['price']) ?></span></div>
     <p><?= htmlspecialchars($product['desc']) ?></p>
 
     <?php if (!empty($product['variants'])): ?>
       <div class="field">
-        <label for="variant">Option</label>
+        <label for="variant">Variant</label>
         <select id="variant" data-variant-select>
           <?php foreach ($product['variants'] as $v): ?>
             <option value="<?= htmlspecialchars($v['id']) ?>"><?= htmlspecialchars($v['name']) ?></option>
           <?php endforeach; ?>
         </select>
+      </div>
+    <?php endif; ?>
+
+    <?php if (!empty($product['options'])): ?>
+      <div class="configurator">
+        <div class="configurator__head">Configure your <?= htmlspecialchars($product['name']) ?></div>
+        <?php foreach ($product['options'] as $group): ?>
+          <div class="field">
+            <label for="opt-<?= htmlspecialchars($group['id']) ?>"><?= htmlspecialchars($group['label']) ?></label>
+            <select id="opt-<?= htmlspecialchars($group['id']) ?>"
+                    data-config-option data-group="<?= htmlspecialchars($group['id']) ?>">
+              <?php foreach ($group['choices'] as $choice): $delta = (float) ($choice['price'] ?? 0); ?>
+                <option value="<?= htmlspecialchars($choice['id']) ?>"
+                        data-name="<?= htmlspecialchars($choice['name'], ENT_QUOTES) ?>"
+                        data-price="<?= $delta ?>">
+                  <?= htmlspecialchars($choice['name']) ?><?= $delta > 0 ? ' (+' . money($delta) . ')' : '' ?>
+                </option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+        <?php endforeach; ?>
       </div>
     <?php endif; ?>
 
@@ -107,5 +123,9 @@ $related = array_slice(array_values($related), 0, 4);
   </div>
 </section>
 <?php endif; ?>
+
+<!-- Filled client-side from localStorage; fires view_item_list (Recently Viewed). -->
+<section class="recently-viewed" data-recently-viewed
+         data-exclude="<?= htmlspecialchars($product['id']) ?>" style="margin-top:56px;"></section>
 
 <?php require __DIR__ . '/includes/footer.php'; ?>

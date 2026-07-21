@@ -22,8 +22,20 @@ require __DIR__ . '/includes/header.php';
     <aside class="summary">
       <h3>Order summary</h3>
       <div class="summary__row"><span>Subtotal</span><span data-subtotal>$0.00</span></div>
+      <div class="summary__row summary__row--discount" data-discount-row style="display:none;">
+        <span>Discount <span class="coupon-tag" data-coupon-tag></span></span><span data-discount>-$0.00</span>
+      </div>
       <div class="summary__row"><span>Shipping</span><span>Calculated next step</span></div>
       <div class="summary__row summary__row--total"><span>Total</span><span data-total>$0.00</span></div>
+
+      <div class="coupon">
+        <div class="coupon__row">
+          <input type="text" data-coupon-input placeholder="Promo code" aria-label="Promo code" autocomplete="off">
+          <button type="button" class="btn btn--ghost" data-coupon-apply>Apply</button>
+        </div>
+        <div class="coupon__status" data-coupon-status></div>
+      </div>
+
       <a class="btn btn--block" href="/checkout-shipping.php" data-begin-checkout style="margin-top:16px;">Checkout</a>
       <a class="btn btn--ghost btn--block" href="/index.php" style="margin-top:10px;">Continue shopping</a>
     </aside>
@@ -78,10 +90,6 @@ require __DIR__ . '/includes/header.php';
       linesEl.appendChild(row);
     });
 
-    var subtotal = SNS.cartValue(cart);
-    tpl.querySelector('[data-subtotal]').textContent = money(subtotal);
-    tpl.querySelector('[data-total]').textContent = money(subtotal);
-
     root.appendChild(tpl);
 
     // Wire qty + remove controls.
@@ -96,15 +104,66 @@ require __DIR__ . '/includes/header.php';
       });
     });
 
-    // begin_checkout on the checkout button.
+    // --- Order summary + coupon --------------------------------------
+    function updateSummary() {
+      var t = SNS.orderTotals(SNS.getCart());
+      root.querySelector('[data-subtotal]').textContent = money(t.subtotal);
+      root.querySelector('[data-total]').textContent = money(t.total);
+
+      var dr = root.querySelector('[data-discount-row]');
+      if (t.discount > 0) {
+        dr.style.display = '';
+        root.querySelector('[data-discount]').textContent = '-' + money(t.discount);
+        root.querySelector('[data-coupon-tag]').textContent = t.couponCode || '';
+      } else {
+        dr.style.display = 'none';
+      }
+
+      var status = root.querySelector('[data-coupon-status]');
+      var input  = root.querySelector('[data-coupon-input]');
+      if (t.coupon) {
+        if (input) input.value = t.couponCode;
+        status.innerHTML = '<span class="coupon__ok">✓ ' + t.couponCode + ' — ' +
+          (t.coupon.label || '') + '</span> <button type="button" class="link-danger" data-coupon-remove>Remove</button>';
+        var rm = status.querySelector('[data-coupon-remove]');
+        if (rm) rm.addEventListener('click', function () { SNS.setCoupon(null); updateSummary(); });
+      } else {
+        status.textContent = '';
+      }
+    }
+
+    var applyBtn = root.querySelector('[data-coupon-apply]');
+    if (applyBtn) {
+      applyBtn.addEventListener('click', function () {
+        var input  = root.querySelector('[data-coupon-input]');
+        var status = root.querySelector('[data-coupon-status]');
+        var code   = (input.value || '').trim();
+        if (!code) return;
+        var found = SNS.findCoupon(code);
+        if (found) {
+          SNS.setCoupon(found);
+          SNS.pushEvent('apply_coupon', {
+            coupon: found.code,
+            discount_type: found.type,
+            discount_amount: found.amount
+          });
+          updateSummary();
+        } else {
+          status.innerHTML = '<span class="coupon__err">“' + code + '” is not a valid code.</span>';
+        }
+      });
+    }
+
+    updateSummary();
+
+    // begin_checkout on the checkout button (owned solely here — see main.js).
     var checkoutBtn = root.querySelector('[data-begin-checkout]');
     if (checkoutBtn) {
       checkoutBtn.addEventListener('click', function () {
-        SNS.pushEcommerce('begin_checkout', {
-          currency: SNS.currency,
-          value: SNS.cartValue(SNS.getCart()),
-          items: SNS.getCart()
-        });
+        var t = SNS.orderTotals(SNS.getCart());
+        var payload = { currency: SNS.currency, value: t.total, items: SNS.getCart() };
+        if (t.couponCode) payload.coupon = t.couponCode;
+        SNS.pushEcommerce('begin_checkout', payload);
       });
     }
   };

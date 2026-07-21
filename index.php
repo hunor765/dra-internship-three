@@ -102,4 +102,7 @@ $promoJson = attr_json([
   </div>
 </section>
 
+<!-- Filled client-side from localStorage; fires view_item_list (Recently Viewed). -->
+<section class="recently-viewed" data-recently-viewed style="margin-top:44px;"></section>
+
 <?php require __DIR__ . '/includes/footer.php'; ?>
