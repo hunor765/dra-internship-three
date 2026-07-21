@@ -108,8 +108,25 @@ $GTM_ID = 'GTM-KQNM4DRL';
       }
     };
   }
+  /* Publish the same object as a plain global, then push the event.
+   *
+   * The global is what makes the data available AT Consent Initialization.
+   * A dataLayer push cannot get there: GTM runs its own bootstrap sequence
+   * (Consent Initialization, Consent Default, Initialization, Consent Update)
+   * before it replays messages that were queued ahead of gtm.js, so even at
+   * index 0 the user_data EVENT is only processed after that sequence ends.
+   *
+   * A global has no such ordering problem. It is set synchronously here,
+   * before the container script tag exists, so a GTM JavaScript Variable
+   * pointing at SNS_USER_DATA resolves for any tag — including one firing on
+   * the Consent Initialization trigger. Read it with a Variable of type
+   * "JavaScript Variable" and Global Variable Name SNS_USER_DATA.email
+   * (or .user_id, .phone_number, …); it is null when nobody is signed in.
+   *
+   * The event is still pushed as well, for tags that trigger on user_data. */
   function push() {
     var u = current();
+    window.SNS_USER_DATA = u ? payload(u).user_data : null;
     if (!u) { return false; }
     window.dataLayer.push(payload(u));
     return true;
