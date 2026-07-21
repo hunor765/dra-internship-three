@@ -57,9 +57,20 @@
     }
   }
 
+  /* The payload lives in the <head> snippet (see includes/header.php), which
+   * pushes it before the GTM container so it is present at consent
+   * initialisation. Re-pushes — a login, a purchase, an SPA route change —
+   * go back through the same builder so the two can never drift.
+   *
+   * These pushes are deliberately not gated on GTM readiness: user_data
+   * should never be held back, and the dataLayer is replayed by GTM anyway. */
   function pushUserData() {
     var u = currentUser();
     if (!u) return;
+    if (window.SNS_USER_EARLY && typeof window.SNS_USER_EARLY.push === 'function') {
+      window.SNS_USER_EARLY.push();
+      return;
+    }
     pushEvent('user_data', {
       user_id: u.user_id,
       user_data: {
@@ -166,10 +177,14 @@
     label.textContent = u ? (u.first_name || 'Account') : 'Sign in';
   }
 
-  /* Runs on first load and every SPA route change (called from SNS.initPage). */
+  /* Runs on first load and every SPA route change (called from SNS.initPage).
+   *
+   * Deliberately does NOT push user_data. A real page load pushes it from the
+   * <head>, before GTM; an SPA route pushes it from router.js, before that
+   * route's page_view. initPage() runs after both, so pushing here would only
+   * ever duplicate the event — and land it behind the page_view it belongs to. */
   function onPage() {
     updateHeader();
-    if (isLoggedIn()) pushUserData();
   }
 
   window.SNS_USER = {

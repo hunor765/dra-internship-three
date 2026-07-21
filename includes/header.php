@@ -58,6 +58,71 @@ $GTM_ID = 'GTM-KQNM4DRL';
   };
 </script>
 
+<!-- ============================================================
+     user_data — pushed BEFORE the GTM container snippet below.
+
+     This has to be the earliest thing in the dataLayer after the
+     bootstrap, so the object is already there when the container
+     initialises: Consent Initialization and Initialization triggers
+     both fire before gtm.js finishes, and the GA4 config tag reads
+     it on the very first page_view. Pushing it later — from auth.js
+     on DOMContentLoaded, as it used to be — means the first page_view
+     of every visit goes out with no user data attached.
+
+     It is a plain synchronous read of localStorage and a raw
+     dataLayer.push on purpose. It must NOT go through the GTM
+     readiness gate in main.js: waiting for GTM is the opposite of
+     what this needs to do, and a raw push is safe because GTM
+     replays whatever is already in the array when it loads.
+
+     This is also the single definition of the user_data payload —
+     auth.js calls back into SNS_USER_EARLY.push() rather than
+     building its own copy.
+     ============================================================ -->
+<script>
+(function () {
+  var USER_KEY = 'sns_user', SESSION_KEY = 'sns_session';
+
+  function stored() {
+    try { return JSON.parse(localStorage.getItem(USER_KEY)) || null; }
+    catch (e) { return null; }
+  }
+  /* Signed in only — a stored profile with a matching live session. */
+  function current() {
+    var u = stored();
+    return (u && localStorage.getItem(SESSION_KEY) === u.user_id) ? u : null;
+  }
+  function payload(u) {
+    return {
+      event: 'user_data',
+      user_id: u.user_id,
+      user_data: {
+        user_id:                  u.user_id,
+        email:                    u.email,
+        phone_number:             u.phone,
+        days_since_registration:  Math.max(0, Math.floor((Date.now() - (u.registered_at || 0)) / 86400000)),
+        last_category_ordered:    u.last_category_ordered || null,
+        last_category_wishlisted: u.last_category_wishlisted || null,
+        total_revenue:            Math.round((u.total_revenue || 0) * 100) / 100,
+        last_purchase_date:       u.last_purchase_date || null
+      }
+    };
+  }
+  function push() {
+    var u = current();
+    if (!u) { return false; }
+    window.dataLayer.push(payload(u));
+    return true;
+  }
+
+  // router.js re-asserts user_data on each SPA route through this same entry
+  // point, so the payload has exactly one definition.
+  window.SNS_USER_EARLY = { push: push, current: current, payload: payload };
+
+  push();
+})();
+</script>
+
 <!-- Google Tag Manager -->
 <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
 new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],

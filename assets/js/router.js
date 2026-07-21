@@ -85,6 +85,13 @@
         current.removeAttribute('aria-busy');
         window.scrollTo(0, 0);
 
+        // Re-assert user_data FIRST, mirroring a real page load, where the
+        // <head> snippet pushes it ahead of everything else. The page_view
+        // below must never go out in front of the identity it belongs to.
+        if (window.SNS_USER_EARLY && typeof window.SNS_USER_EARLY.push === 'function') {
+          window.SNS_USER_EARLY.push();
+        }
+
         // The GA4 config tag fired page_view only once, on the first load.
         // Emit a fresh page_view for this route BEFORE the view_* events so
         // the sequence mirrors a real multi-page load (page_view, then the
