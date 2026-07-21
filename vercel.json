@@ -1,9 +1,9 @@
 {
   "builds": [
     {
-      "src": "*.php",
+      "src": "app.php",
       "use": "vercel-php@0.7.4",
-      "config": { "includeFiles": "includes/**" }
+      "config": { "includeFiles": "{includes/**,*.php}" }
     },
     {
       "src": "assets/**",
@@ -11,6 +11,6 @@
     }
   ],
   "rewrites": [
-    { "source": "/", "destination": "/index.php" }
+    { "source": "/((?!assets/).*)", "destination": "/app.php" }
   ]
 }
