@@ -313,6 +313,25 @@
   }
 
   /* ----------------------------------------------------------------------
+   * Programmatic navigation.
+   *
+   * Anywhere the site moves the visitor itself — a form submit, the checkout
+   * steps — it goes through here rather than assigning location.href, so the
+   * whole app stays a SPA. The router handles pushState, the <main> swap and
+   * the page_view for the new route; it also falls back to a real navigation
+   * on its own if the fetch fails, so this cannot strand the visitor.
+   *
+   * The fallback below only matters if router.js has not loaded yet.
+   * -------------------------------------------------------------------- */
+  function go(url) {
+    if (window.SNS_ROUTER && typeof window.SNS_ROUTER.navigate === 'function') {
+      window.SNS_ROUTER.navigate(url, true);
+    } else {
+      window.location.href = url;
+    }
+  }
+
+  /* ----------------------------------------------------------------------
    * Header search — SPA-aware submit to /search.php (view_search_results
    * fires on the search page itself, from its queued page dataLayer).
    * -------------------------------------------------------------------- */
@@ -323,12 +342,8 @@
         var input = form.querySelector('input[name="q"]');
         var q = (input && input.value || '').trim();
         if (!q) { e.preventDefault(); return; }
-        var url = '/search.php?q=' + encodeURIComponent(q);
-        if (window.SNS_ROUTER && typeof window.SNS_ROUTER.navigate === 'function') {
-          e.preventDefault();
-          window.SNS_ROUTER.navigate(url, true);
-        }
-        // else: let the native GET submit happen (full page load).
+        e.preventDefault();
+        go('/search.php?q=' + encodeURIComponent(q));
       });
     });
   }
@@ -675,6 +690,7 @@
     pushEcommerce: pushEcommerce,
     pushEvent: pushEvent,
     pushPageView: pushPageView,
+    go: go,
     initPage: initPage,
     currency: CURRENCY,
     refreshBadges: refreshBadges,

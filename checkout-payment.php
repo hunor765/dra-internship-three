@@ -158,7 +158,9 @@ require __DIR__ . '/includes/header.php';
       SNS.clearCart();
       SNS.setCoupon(null);
 
-      window.location.href = '/thank-you.php';
+      // Route through the SPA, for the same reason as the shipping step:
+      // add_payment_info must not be racing a page unload.
+      SNS.go('/thank-you.php');
     });
   });
 })();

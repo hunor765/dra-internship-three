@@ -9,8 +9,9 @@
  * The server still renders every page in full, so deep links and refreshes
  * work exactly as before — only in-app navigation is intercepted.
  *
- * Checkout keeps its hard redirects (window.location.href in the shipping and
- * payment steps), so those two hops still cause a real page load.
+ * Every in-app hop goes through here, including the checkout steps, which
+ * call SNS.go() rather than assigning location.href. Only a file download
+ * ([download] links) or an outright fetch failure causes a real page load.
  * ======================================================================== */
 
 (function () {
